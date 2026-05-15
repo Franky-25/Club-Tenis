@@ -1,8 +1,10 @@
 import type { FormEvent } from 'react'
 import type { Player, Reservation } from '../types'
+import type { CourtStatus } from './Header'
 import { getLocalDateValue } from '../utils/date'
 
 type ReservationFormProps = {
+  courtStatus: CourtStatus
   editingReservation: Reservation | null
   errorMessage: string
   onCancelEdit: () => void
@@ -42,6 +44,7 @@ const timeOptions = [
 ]
 
 export function ReservationForm({
+  courtStatus,
   editingReservation,
   errorMessage,
   onCancelEdit,
@@ -49,9 +52,16 @@ export function ReservationForm({
   onSaveReservation,
 }: ReservationFormProps) {
   const today = getLocalDateValue()
+  const isMaintenanceMode = courtStatus === 'mantencion'
+  const isReservationBlocked = isMaintenanceMode && !editingReservation
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    if (isReservationBlocked) {
+      return
+    }
+
     const formData = new FormData(event.currentTarget)
 
     const wasSaved = onSaveReservation({
@@ -78,14 +88,14 @@ export function ReservationForm({
         </h2>
       </div>
 
-      {errorMessage ? (
-        <p className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">
-          {errorMessage}
-        </p>
-      ) : null}
-
       <form className="grid min-w-0 gap-4" key={editingReservation?.id ?? 'new-reservation'} onSubmit={handleSubmit}>
         <input name="court" type="hidden" value={court} />
+
+        {isReservationBlocked ? (
+          <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-800">
+            La cancha esta en mantencion. No se pueden crear nuevas reservas por ahora.
+          </p>
+        ) : null}
 
         <label className="grid gap-2 text-sm font-medium text-slate-700">
           Socio
@@ -94,7 +104,7 @@ export function ReservationForm({
             defaultValue={editingReservation?.playerId ?? ''}
             name="playerId"
             required
-            disabled={players.length === 0}
+            disabled={players.length === 0 || isReservationBlocked}
           >
             <option value="">Seleccionar socio</option>
             {players.map((player) => (
@@ -105,16 +115,13 @@ export function ReservationForm({
           </select>
         </label>
 
-        <div className="rounded-xl bg-[#FBE7E4] px-4 py-3 text-sm font-semibold text-[#B94439]">
-          Cancha disponible: {court}
-        </div>
-
         <div className="grid min-w-0 gap-4 sm:grid-cols-3">
           <label className="grid gap-2 text-sm font-medium text-slate-700">
             Fecha
             <input
               className="input-field"
               defaultValue={editingReservation?.date ?? today}
+              disabled={isReservationBlocked}
               name="date"
               required
               type="date"
@@ -125,6 +132,7 @@ export function ReservationForm({
             <select
               className="input-field"
               defaultValue={editingReservation?.startTime ?? ''}
+              disabled={isReservationBlocked}
               name="startTime"
               required
             >
@@ -141,6 +149,7 @@ export function ReservationForm({
             <select
               className="input-field"
               defaultValue={editingReservation?.endTime ?? ''}
+              disabled={isReservationBlocked}
               name="endTime"
               required
             >
@@ -155,7 +164,7 @@ export function ReservationForm({
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <button className="primary-button" disabled={players.length === 0} type="submit">
+          <button className="primary-button" disabled={players.length === 0 || isReservationBlocked} type="submit">
             {editingReservation ? 'Guardar cambios' : 'Crear reserva'}
           </button>
           {editingReservation ? (
@@ -164,6 +173,12 @@ export function ReservationForm({
             </button>
           ) : null}
         </div>
+
+        {errorMessage ? (
+          <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">
+            {errorMessage}
+          </p>
+        ) : null}
       </form>
     </section>
   )

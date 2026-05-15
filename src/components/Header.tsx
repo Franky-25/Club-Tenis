@@ -1,4 +1,13 @@
-export function Header() {
+export type CourtStatus = 'operativo' | 'mantencion'
+
+type HeaderProps = {
+  courtStatus: CourtStatus
+  onCourtStatusChange: (status: CourtStatus) => void
+}
+
+export function Header({ courtStatus, onCourtStatusChange }: HeaderProps) {
+  const isOperational = courtStatus === 'operativo'
+
   return (
     <header className="w-full bg-[#DB5D4F] text-white">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-6 sm:px-6 sm:py-8 lg:flex-row lg:items-center lg:justify-between lg:px-8">
@@ -10,9 +19,37 @@ export function Header() {
             Gestion de socios, reserva de cancha.
           </p>
         </div>
-        <div className="w-full rounded-2xl border border-white/40 bg-white/10 px-4 py-4 text-left shadow-lg sm:px-5 lg:w-auto lg:min-w-56">
+
+        <div className="w-full rounded-2xl border border-white/40 bg-white/10 px-4 py-4 text-left shadow-lg sm:px-5 lg:w-auto lg:min-w-72">
           <p className="text-sm text-[#FBE7E4]">Estado</p>
-          <p className="text-2xl font-bold">🎾 Operativo</p>
+          <p className="mt-1 text-2xl font-bold">
+            {isOperational ? '🎾 Operativo' : '🛠️ En mantencion'}
+          </p>
+
+          <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl bg-white/10 p-1">
+            <button
+              className={`rounded-lg px-3 py-2 text-sm font-bold transition ${
+                isOperational
+                  ? 'bg-white text-[#B94439] shadow-sm'
+                  : 'text-white hover:bg-white/10'
+              }`}
+              onClick={() => onCourtStatusChange('operativo')}
+              type="button"
+            >
+              Operativo
+            </button>
+            <button
+              className={`rounded-lg px-3 py-2 text-sm font-bold transition ${
+                !isOperational
+                  ? 'bg-white text-[#B94439] shadow-sm'
+                  : 'text-white hover:bg-white/10'
+              }`}
+              onClick={() => onCourtStatusChange('mantencion')}
+              type="button"
+            >
+              En mantencion
+            </button>
+          </div>
         </div>
       </div>
     </header>

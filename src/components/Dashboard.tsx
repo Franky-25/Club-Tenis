@@ -9,17 +9,15 @@ type DashboardProps = {
 export function Dashboard({ players, reservations }: DashboardProps) {
   const today = getLocalDateValue()
   const reservationsToday = reservations.filter((reservation) => reservation.date === today)
-  const courtsInUse = new Set(reservationsToday.map((reservation) => reservation.court)).size
 
   const metrics = [
     { label: 'Socios', value: players.length, icon: '👥' },
     { label: 'Reservas activas', value: reservations.length, icon: '📅' },
     { label: 'Reservas hoy', value: reservationsToday.length, icon: '⏱️' },
-    { label: 'Cancha', value: courtsInUse, icon: '🎾' },
   ]
 
   return (
-    <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
+    <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
       {metrics.map((metric) => (
         <article
           className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"

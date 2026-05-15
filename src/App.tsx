@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { CourtSchedule } from './components/CourtSchedule'
 import { Dashboard } from './components/Dashboard'
-import { Header } from './components/Header'
+import { Header, type CourtStatus } from './components/Header'
 import { PlayerForm } from './components/PlayerForm'
 import { PlayerList } from './components/PlayerList'
 import { ReservationForm } from './components/ReservationForm'
@@ -30,6 +30,7 @@ function App() {
   ])
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null)
+  const [courtStatus, setCourtStatus] = useState<CourtStatus>('operativo')
   const [searchTerm, setSearchTerm] = useState('')
   const [reservationError, setReservationError] = useState('')
   const reservationFormRef = useRef<HTMLDivElement | null>(null)
@@ -66,6 +67,11 @@ function App() {
   }
 
   function handleSaveReservation(reservationData: Omit<Reservation, 'id' | 'playerName'>) {
+    if (courtStatus === 'mantencion' && !editingReservation) {
+      setReservationError('La cancha esta en mantencion. No se pueden crear nuevas reservas por ahora.')
+      return false
+    }
+
     const selectedPlayer = players.find((player) => player.id === reservationData.playerId)
 
     if (!selectedPlayer) {
@@ -158,7 +164,7 @@ function App() {
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-slate-100 text-slate-800">
-      <Header />
+      <Header courtStatus={courtStatus} onCourtStatusChange={setCourtStatus} />
       <main className="mx-auto grid w-full max-w-7xl gap-4 px-3 py-4 sm:gap-6 sm:px-6 sm:py-6 lg:px-8">
         <Dashboard players={players} reservations={reservations} />
 
@@ -177,6 +183,7 @@ function App() {
           ref={reservationFormRef}
         >
           <ReservationForm
+            courtStatus={courtStatus}
             editingReservation={editingReservation}
             errorMessage={reservationError}
             onCancelEdit={handleCancelEditReservation}
