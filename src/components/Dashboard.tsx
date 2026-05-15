@@ -15,7 +15,7 @@ export function Dashboard({ players, reservations }: DashboardProps) {
     { label: 'Socios', value: players.length, icon: '👥' },
     { label: 'Reservas activas', value: reservations.length, icon: '📅' },
     { label: 'Reservas hoy', value: reservationsToday.length, icon: '⏱️' },
-    { label: 'Canchas en uso hoy', value: courtsInUse, icon: '🎾' },
+    { label: 'Cancha', value: courtsInUse, icon: '🎾' },
   ]
 
   return (
