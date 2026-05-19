@@ -3,9 +3,10 @@ export type CourtStatus = 'operativo' | 'mantencion'
 type HeaderProps = {
   courtStatus: CourtStatus
   onCourtStatusChange: (status: CourtStatus) => void
+  onSignOut?: () => void
 }
 
-export function Header({ courtStatus, onCourtStatusChange }: HeaderProps) {
+export function Header({ courtStatus, onCourtStatusChange, onSignOut }: HeaderProps) {
   const isOperational = courtStatus === 'operativo'
 
   return (
@@ -21,7 +22,18 @@ export function Header({ courtStatus, onCourtStatusChange }: HeaderProps) {
         </div>
 
         <div className="w-full rounded-2xl border border-white/40 bg-white/10 px-4 py-4 text-left shadow-lg sm:px-5 lg:w-auto lg:min-w-72">
-          <p className="text-sm text-[#FBE7E4]">Estado</p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-[#FBE7E4]">Estado</p>
+            {onSignOut ? (
+              <button
+                className="rounded-lg border border-white/40 px-3 py-1 text-xs font-bold text-white transition hover:bg-white/10"
+                onClick={onSignOut}
+                type="button"
+              >
+                Salir
+              </button>
+            ) : null}
+          </div>
           <p className="mt-1 text-2xl font-bold">
             {isOperational ? '🎾 Operativo' : '🛠️ En mantencion'}
           </p>

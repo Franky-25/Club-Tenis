@@ -9,7 +9,7 @@ type ReservationFormProps = {
   errorMessage: string
   onCancelEdit: () => void
   players: Player[]
-  onSaveReservation: (reservation: Omit<Reservation, 'id' | 'playerName'>) => boolean
+  onSaveReservation: (reservation: Omit<Reservation, 'id' | 'playerName'>) => boolean | Promise<boolean>
 }
 
 const court = 'Cancha 1'
@@ -55,7 +55,7 @@ export function ReservationForm({
   const isMaintenanceMode = courtStatus === 'mantencion'
   const isReservationBlocked = isMaintenanceMode && !editingReservation
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     if (isReservationBlocked) {
@@ -64,7 +64,7 @@ export function ReservationForm({
 
     const formData = new FormData(event.currentTarget)
 
-    const wasSaved = onSaveReservation({
+    const wasSaved = await onSaveReservation({
       playerId: String(formData.get('playerId')),
       court: String(formData.get('court')),
       date: String(formData.get('date')),
