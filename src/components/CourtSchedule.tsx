@@ -1,40 +1,12 @@
 import type { Reservation } from '../types'
 import { getLocalDateValue } from '../utils/date'
+import { reservationTimeOptions } from '../utils/timeSlots'
 
 type CourtScheduleProps = {
   reservations: Reservation[]
 }
 
 const court = 'Cancha 1'
-const hours = [
-  '08:00',
-  '08:30',
-  '09:00',
-  '09:30',
-  '10:00',
-  '10:30',
-  '11:00',
-  '11:30',
-  '12:00',
-  '12:30',
-  '13:00',
-  '13:30',
-  '14:00',
-  '14:30',
-  '15:00',
-  '15:30',
-  '16:00',
-  '16:30',
-  '17:00',
-  '17:30',
-  '18:00',
-  '18:30',
-  '19:00',
-  '19:30',
-  '20:00',
-  '20:30',
-  '21:00',
-]
 
 export function CourtSchedule({ reservations }: CourtScheduleProps) {
   const today = getLocalDateValue()
@@ -67,7 +39,7 @@ export function CourtSchedule({ reservations }: CourtScheduleProps) {
             {court}
           </div>
 
-          {hours.map((hour) => {
+          {reservationTimeOptions.map((hour) => {
             const reservation = getReservation(hour)
 
             return (

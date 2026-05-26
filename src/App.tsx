@@ -13,8 +13,9 @@ import {
   createPlayer,
   deletePlayer,
   fetchClubData,
-  isCurrentUserRegisteredPlayer,
+  getCurrentUserPlayer,
   saveReservation,
+  updatePlayer,
   updateCourtStatus,
 } from './lib/clubRepository'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
@@ -26,12 +27,14 @@ const seededPlayers: Player[] = [
     name: 'Camila Rojas',
     phone: '+56 9 4321 9876',
     email: 'camila@elsalto.cl',
+    role: 'admin',
   },
   {
     id: crypto.randomUUID(),
     name: 'Nicolas Fuentes',
     phone: '+56 9 8765 1234',
     email: 'nicolas@elsalto.cl',
+    role: 'member',
   },
 ]
 
@@ -55,6 +58,8 @@ function getErrorMessage(error: unknown, fallbackMessage: string) {
 function App() {
   const [players, setPlayers] = useState<Player[]>(seededPlayers)
   const [reservations, setReservations] = useState<Reservation[]>([])
+  const [currentPlayer, setCurrentPlayer] = useState<Player | null>(isSupabaseConfigured ? null : seededPlayers[0])
+  const [editingPlayer, setEditingPlayer] = useState<Player | null>(null)
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null)
   const [courtStatus, setCourtStatus] = useState<CourtStatus>('operativo')
   const [searchTerm, setSearchTerm] = useState('')
@@ -64,8 +69,10 @@ function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [isAuthReady, setIsAuthReady] = useState(!isSupabaseConfigured)
   const [isLoadingRemoteData, setIsLoadingRemoteData] = useState(false)
+  const playerFormRef = useRef<HTMLDivElement | null>(null)
   const reservationFormRef = useRef<HTMLDivElement | null>(null)
   const shouldUseSupabase = isSupabaseConfigured && session !== null
+  const isAdmin = !isSupabaseConfigured || currentPlayer?.role === 'admin'
 
   const loadRemoteData = useCallback(async function loadRemoteData() {
     setIsLoadingRemoteData(true)
@@ -86,13 +93,14 @@ function App() {
   const applySession = useCallback(async function applySession(nextSession: Session | null) {
     if (!nextSession) {
       setSession(null)
+      setCurrentPlayer(null)
       return
     }
 
     try {
-      const isRegisteredPlayer = await isCurrentUserRegisteredPlayer()
+      const userPlayer = await getCurrentUserPlayer()
 
-      if (!isRegisteredPlayer) {
+      if (!userPlayer) {
         await supabase.auth.signOut()
         setSession(null)
         setAuthMessage('Este correo no esta registrado como socio de Tenis El Salto.')
@@ -100,6 +108,7 @@ function App() {
       }
 
       setAuthMessage('')
+      setCurrentPlayer(userPlayer)
       setSession(nextSession)
       await loadRemoteData()
     } catch (error) {
@@ -114,10 +123,9 @@ function App() {
       return
     }
 
-    supabase.auth.getSession().then(({ data }) => {
-      setIsAuthReady(true)
-      void applySession(data.session)
-    })
+    supabase.auth.getSession()
+      .then(({ data }) => applySession(data.session))
+      .finally(() => setIsAuthReady(true))
 
     const {
       data: { subscription },
@@ -138,30 +146,64 @@ function App() {
     return players.filter((player) => player.name.toLowerCase().includes(normalizedSearch))
   }, [players, searchTerm])
 
-  async function handleAddPlayer(playerData: Omit<Player, 'id'>) {
-    if (shouldUseSupabase) {
-      try {
-        const savedPlayer = await createPlayer(playerData)
-        setPlayers((currentPlayers) =>
-          [...currentPlayers, savedPlayer].sort((first, second) => first.name.localeCompare(second.name)),
-        )
-      } catch (error) {
-        setAppMessage(getErrorMessage(error, 'No se pudo crear el socio.'))
-      }
-
-      return
+  async function handleSavePlayer(playerData: Omit<Player, 'id'>) {
+    if (!isAdmin) {
+      setAppMessage('Solo un administrador puede crear o editar socios.')
+      return false
     }
 
-    setPlayers((currentPlayers) => [
-      ...currentPlayers,
-      {
+    if (shouldUseSupabase) {
+      try {
+        const savedPlayer = editingPlayer
+          ? await updatePlayer(editingPlayer.id, playerData)
+          : await createPlayer(playerData)
+        setPlayers((currentPlayers) =>
+          (editingPlayer
+            ? currentPlayers.map((player) => (player.id === editingPlayer.id ? savedPlayer : player))
+            : [...currentPlayers, savedPlayer]
+          ).sort((first, second) => first.name.localeCompare(second.name)),
+        )
+        if (currentPlayer?.id === savedPlayer.id) {
+          setCurrentPlayer(savedPlayer)
+        }
+        setEditingPlayer(null)
+        return true
+      } catch (error) {
+        setAppMessage(getErrorMessage(error, 'No se pudo guardar el socio.'))
+        return false
+      }
+    }
+
+    setPlayers((currentPlayers) =>
+      (editingPlayer
+        ? currentPlayers.map((player) =>
+            player.id === editingPlayer.id ? { ...player, ...playerData } : player,
+          )
+        : [
+            ...currentPlayers,
+            {
+              ...playerData,
+              id: crypto.randomUUID(),
+            },
+          ]
+      ).sort((first, second) => first.name.localeCompare(second.name)),
+    )
+    if (currentPlayer && currentPlayer.id === editingPlayer?.id) {
+      setCurrentPlayer({
+        id: currentPlayer.id,
         ...playerData,
-        id: crypto.randomUUID(),
-      },
-    ])
+      })
+    }
+    setEditingPlayer(null)
+    return true
   }
 
   async function handleDeletePlayer(playerId: string) {
+    if (!isAdmin) {
+      setAppMessage('Solo un administrador puede eliminar socios.')
+      return
+    }
+
     if (shouldUseSupabase) {
       try {
         await deletePlayer(playerId)
@@ -175,10 +217,23 @@ function App() {
     setReservations((currentReservations) =>
       currentReservations.filter((reservation) => reservation.playerId !== playerId),
     )
+    if (editingPlayer?.id === playerId) {
+      setEditingPlayer(null)
+    }
     if (editingReservation?.playerId === playerId) {
       setEditingReservation(null)
       setReservationError('')
     }
+  }
+
+  function handleEditPlayer(player: Player) {
+    setEditingPlayer(player)
+    setTimeout(() => {
+      playerFormRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
+    }, 0)
   }
 
   async function handleSaveReservation(reservationData: Omit<Reservation, 'id' | 'playerName'>) {
@@ -191,6 +246,16 @@ function App() {
 
     if (!selectedPlayer) {
       setReservationError('Selecciona un socio valido para crear la reserva.')
+      return false
+    }
+
+    if (!isAdmin && selectedPlayer.id !== currentPlayer?.id) {
+      setReservationError('Solo puedes crear o editar tus propias reservas.')
+      return false
+    }
+
+    if (!isAdmin && editingReservation && editingReservation.playerId !== currentPlayer?.id) {
+      setReservationError('No puedes editar reservas de otros socios.')
       return false
     }
 
@@ -282,6 +347,17 @@ function App() {
   }
 
   async function handleCancelReservation(reservationId: string) {
+    const reservationToCancel = reservations.find((reservation) => reservation.id === reservationId)
+
+    if (!reservationToCancel) {
+      return
+    }
+
+    if (!isAdmin && reservationToCancel.playerId !== currentPlayer?.id) {
+      setReservationError('No puedes cancelar reservas de otros socios.')
+      return
+    }
+
     if (shouldUseSupabase) {
       try {
         await cancelReservation(reservationId)
@@ -301,6 +377,11 @@ function App() {
   }
 
   function handleEditReservation(reservation: Reservation) {
+    if (!isAdmin && reservation.playerId !== currentPlayer?.id) {
+      setReservationError('No puedes editar reservas de otros socios.')
+      return
+    }
+
     setEditingReservation(reservation)
     setReservationError('')
     setTimeout(() => {
@@ -317,6 +398,11 @@ function App() {
   }
 
   async function handleCourtStatusChange(nextStatus: CourtStatus) {
+    if (!isAdmin) {
+      setAppMessage('Solo un administrador puede cambiar el estado de la cancha.')
+      return
+    }
+
     const previousStatus = courtStatus
     setCourtStatus(nextStatus)
 
@@ -337,6 +423,8 @@ function App() {
     setSession(null)
     setPlayers(seededPlayers)
     setReservations([])
+    setCurrentPlayer(null)
+    setEditingPlayer(null)
     setEditingReservation(null)
   }
 
@@ -344,7 +432,7 @@ function App() {
     return (
       <div className="grid min-h-screen place-items-center bg-slate-100 px-4 text-slate-700">
         <p className="rounded-2xl border border-slate-200 bg-white px-5 py-4 font-semibold shadow-sm">
-          Conectando con Supabase...
+          Un momento por favor...
         </p>
       </div>
     )
@@ -357,7 +445,9 @@ function App() {
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-slate-100 text-slate-800">
       <Header
+        canManageCourt={isAdmin}
         courtStatus={courtStatus}
+        currentPlayerName={currentPlayer?.name}
         onCourtStatusChange={handleCourtStatusChange}
         onSignOut={shouldUseSupabase ? handleSignOut : undefined}
       />
@@ -376,32 +466,74 @@ function App() {
 
         <Dashboard players={players} reservations={reservations} />
 
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-          <PlayerForm onAddPlayer={handleAddPlayer} />
-          <PlayerList
-            onDeletePlayer={handleDeletePlayer}
-            onSearchChange={setSearchTerm}
-            players={filteredPlayers}
-            searchTerm={searchTerm}
-          />
-        </div>
+        {isAdmin ? (
+          <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+            <div className="grid gap-6">
+              <div ref={playerFormRef}>
+                <PlayerForm
+                  editingPlayer={editingPlayer}
+                  onCancelEdit={() => setEditingPlayer(null)}
+                  onSavePlayer={handleSavePlayer}
+                />
+              </div>
+              <div ref={reservationFormRef}>
+                <ReservationForm
+                  courtStatus={courtStatus}
+                  currentPlayer={currentPlayer}
+                  editingReservation={editingReservation}
+                  errorMessage={reservationError}
+                  isAdmin={isAdmin}
+                  onCancelEdit={handleCancelEditReservation}
+                  onSaveReservation={handleSaveReservation}
+                  players={players}
+                />
+              </div>
+            </div>
 
-        <div
-          className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
-          ref={reservationFormRef}
-        >
-          <ReservationForm
-            courtStatus={courtStatus}
-            editingReservation={editingReservation}
-            errorMessage={reservationError}
-            onCancelEdit={handleCancelEditReservation}
-            onSaveReservation={handleSaveReservation}
-            players={players}
-          />
-          <CourtSchedule reservations={reservations} />
-        </div>
+            <div className="grid gap-6">
+              <PlayerList
+                canManagePlayers={isAdmin}
+                onDeletePlayer={handleDeletePlayer}
+                onEditPlayer={handleEditPlayer}
+                onSearchChange={setSearchTerm}
+                players={filteredPlayers}
+                searchTerm={searchTerm}
+              />
+              <CourtSchedule reservations={reservations} />
+            </div>
+          </div>
+        ) : (
+          <>
+            <PlayerList
+              canManagePlayers={false}
+              onDeletePlayer={handleDeletePlayer}
+              onEditPlayer={handleEditPlayer}
+              onSearchChange={setSearchTerm}
+              players={filteredPlayers}
+              searchTerm={searchTerm}
+            />
+
+            <div
+              className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
+              ref={reservationFormRef}
+            >
+              <ReservationForm
+                courtStatus={courtStatus}
+                currentPlayer={currentPlayer}
+                editingReservation={editingReservation}
+                errorMessage={reservationError}
+                isAdmin={isAdmin}
+                onCancelEdit={handleCancelEditReservation}
+                onSaveReservation={handleSaveReservation}
+                players={players}
+              />
+              <CourtSchedule reservations={reservations} />
+            </div>
+          </>
+        )}
 
         <ReservationsTable
+          canManageReservation={(reservation) => isAdmin || reservation.playerId === currentPlayer?.id}
           onCancelReservation={handleCancelReservation}
           onEditReservation={handleEditReservation}
           reservations={reservations}

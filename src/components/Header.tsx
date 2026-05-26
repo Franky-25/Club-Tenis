@@ -1,12 +1,20 @@
 export type CourtStatus = 'operativo' | 'mantencion'
 
 type HeaderProps = {
+  canManageCourt: boolean
   courtStatus: CourtStatus
+  currentPlayerName?: string
   onCourtStatusChange: (status: CourtStatus) => void
   onSignOut?: () => void
 }
 
-export function Header({ courtStatus, onCourtStatusChange, onSignOut }: HeaderProps) {
+export function Header({
+  canManageCourt,
+  courtStatus,
+  currentPlayerName,
+  onCourtStatusChange,
+  onSignOut,
+}: HeaderProps) {
   const isOperational = courtStatus === 'operativo'
 
   return (
@@ -23,7 +31,14 @@ export function Header({ courtStatus, onCourtStatusChange, onSignOut }: HeaderPr
 
         <div className="w-full rounded-2xl border border-white/40 bg-white/10 px-4 py-4 text-left shadow-lg sm:px-5 lg:w-auto lg:min-w-72">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-[#FBE7E4]">Estado</p>
+            <div className="min-w-0">
+              {currentPlayerName ? (
+                <p className="truncate text-sm font-bold text-white">
+                  Hola {currentPlayerName}
+                </p>
+              ) : null}
+              <p className="text-sm text-[#FBE7E4]">Estado</p>
+            </div>
             {onSignOut ? (
               <button
                 className="rounded-lg border border-white/40 px-3 py-1 text-xs font-bold text-white transition hover:bg-white/10"
@@ -38,30 +53,32 @@ export function Header({ courtStatus, onCourtStatusChange, onSignOut }: HeaderPr
             {isOperational ? '🎾 Operativo' : '🛠️ En mantencion'}
           </p>
 
-          <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl bg-white/10 p-1">
-            <button
-              className={`rounded-lg px-3 py-2 text-sm font-bold transition ${
-                isOperational
-                  ? 'bg-white text-[#B94439] shadow-sm'
-                  : 'text-white hover:bg-white/10'
-              }`}
-              onClick={() => onCourtStatusChange('operativo')}
-              type="button"
-            >
-              Operativo
-            </button>
-            <button
-              className={`rounded-lg px-3 py-2 text-sm font-bold transition ${
-                !isOperational
-                  ? 'bg-white text-[#B94439] shadow-sm'
-                  : 'text-white hover:bg-white/10'
-              }`}
-              onClick={() => onCourtStatusChange('mantencion')}
-              type="button"
-            >
-              En mantencion
-            </button>
-          </div>
+          {canManageCourt ? (
+            <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl bg-white/10 p-1">
+              <button
+                className={`rounded-lg px-3 py-2 text-sm font-bold transition ${
+                  isOperational
+                    ? 'bg-white text-[#B94439] shadow-sm'
+                    : 'text-white hover:bg-white/10'
+                }`}
+                onClick={() => onCourtStatusChange('operativo')}
+                type="button"
+              >
+                Operativo
+              </button>
+              <button
+                className={`rounded-lg px-3 py-2 text-sm font-bold transition ${
+                  !isOperational
+                    ? 'bg-white text-[#B94439] shadow-sm'
+                    : 'text-white hover:bg-white/10'
+                }`}
+                onClick={() => onCourtStatusChange('mantencion')}
+                type="button"
+              >
+                En mantencion
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
     </header>

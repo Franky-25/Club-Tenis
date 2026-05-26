@@ -3,15 +3,19 @@ import type { Player } from '../types'
 import { ConfirmDialog } from './ConfirmDialog'
 
 type PlayerListProps = {
+  canManagePlayers: boolean
   players: Player[]
   searchTerm: string
+  onEditPlayer: (player: Player) => void
   onSearchChange: (value: string) => void
   onDeletePlayer: (playerId: string) => void
 }
 
 export function PlayerList({
+  canManagePlayers,
   players,
   searchTerm,
+  onEditPlayer,
   onSearchChange,
   onDeletePlayer,
 }: PlayerListProps) {
@@ -61,29 +65,39 @@ export function PlayerList({
                 <h3 className="font-bold text-slate-900">{player.name}</h3>
                 <p className="break-words text-sm text-slate-600">{player.email}</p>
                 <p className="text-sm text-slate-600">{player.phone}</p>
+                <span className="mt-2 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                  {player.role === 'admin' ? 'Administrador' : 'Socio'}
+                </span>
               </div>
-              <div className="flex min-w-0 flex-col gap-3 sm:items-end">
-                <button className="danger-button" onClick={() => setPlayerToDelete(player)} type="button">
-                  Eliminar
-                </button>
-              </div>
+              {canManagePlayers ? (
+                <div className="flex min-w-0 flex-col gap-3 sm:items-end">
+                  <button className="secondary-button" onClick={() => onEditPlayer(player)} type="button">
+                    Editar
+                  </button>
+                  <button className="danger-button" onClick={() => setPlayerToDelete(player)} type="button">
+                    Eliminar
+                  </button>
+                </div>
+              ) : null}
             </article>
           ))
         )}
       </div>
 
-      <ConfirmDialog
-        confirmLabel="Eliminar socio"
-        isOpen={playerToDelete !== null}
-        message={
-          playerToDelete
-            ? `Se eliminara a ${playerToDelete.name} y tambien sus reservas asociadas.`
-            : ''
-        }
-        onCancel={() => setPlayerToDelete(null)}
-        onConfirm={handleConfirmDelete}
-        title="Eliminar socio"
-      />
+      {canManagePlayers ? (
+        <ConfirmDialog
+          confirmLabel="Eliminar socio"
+          isOpen={playerToDelete !== null}
+          message={
+            playerToDelete
+              ? `Se eliminara a ${playerToDelete.name} y tambien sus reservas asociadas.`
+              : ''
+          }
+          onCancel={() => setPlayerToDelete(null)}
+          onConfirm={handleConfirmDelete}
+          title="Eliminar socio"
+        />
+      ) : null}
     </section>
   )
 }

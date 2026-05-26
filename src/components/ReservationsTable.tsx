@@ -4,12 +4,14 @@ import { formatDateForDisplay } from '../utils/date'
 import { ConfirmDialog } from './ConfirmDialog'
 
 type ReservationsTableProps = {
+  canManageReservation: (reservation: Reservation) => boolean
   reservations: Reservation[]
   onCancelReservation: (reservationId: string) => void
   onEditReservation: (reservation: Reservation) => void
 }
 
 export function ReservationsTable({
+  canManageReservation,
   reservations,
   onCancelReservation,
   onEditReservation,
@@ -59,45 +61,55 @@ export function ReservationsTable({
                   </td>
                 </tr>
               ) : (
-                reservations.map((reservation) => (
-                  <tr
-                    className="transition-colors hover:bg-slate-50"
-                    key={reservation.id}
-                  >
-                    <td className="border-t border-slate-100 px-4 py-4 font-semibold text-slate-900">
-                      {reservation.playerName}
-                    </td>
-                    <td className="border-t border-slate-100 px-4 py-4">
-                      <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-700">
-                        {formatDateForDisplay(reservation.date)}
-                      </span>
-                    </td>
-                    <td className="border-t border-slate-100 px-4 py-4 font-semibold text-[#B94439]">
-                      {reservation.startTime}
-                    </td>
-                    <td className="border-t border-slate-100 px-4 py-4 font-semibold text-slate-700">
-                      {reservation.endTime}
-                    </td>
-                    <td className="border-t border-slate-100 px-4 py-4">
-                      <div className="flex flex-col justify-end gap-2 sm:flex-row">
-                        <button
-                          className="secondary-button"
-                          onClick={() => onEditReservation(reservation)}
-                          type="button"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          className="danger-button"
-                          onClick={() => setReservationToCancel(reservation)}
-                          type="button"
-                        >
-                          Cancelar
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                reservations.map((reservation) => {
+                  const canManage = canManageReservation(reservation)
+
+                  return (
+                    <tr
+                      className="transition-colors hover:bg-slate-50"
+                      key={reservation.id}
+                    >
+                      <td className="border-t border-slate-100 px-4 py-4 font-semibold text-slate-900">
+                        {reservation.playerName}
+                      </td>
+                      <td className="border-t border-slate-100 px-4 py-4">
+                        <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-700">
+                          {formatDateForDisplay(reservation.date)}
+                        </span>
+                      </td>
+                      <td className="border-t border-slate-100 px-4 py-4 font-semibold text-[#B94439]">
+                        {reservation.startTime}
+                      </td>
+                      <td className="border-t border-slate-100 px-4 py-4 font-semibold text-slate-700">
+                        {reservation.endTime}
+                      </td>
+                      <td className="border-t border-slate-100 px-4 py-4">
+                        {canManage ? (
+                          <div className="flex flex-col justify-end gap-2 sm:flex-row">
+                            <button
+                              className="secondary-button"
+                              onClick={() => onEditReservation(reservation)}
+                              type="button"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              className="danger-button"
+                              onClick={() => setReservationToCancel(reservation)}
+                              type="button"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="block text-right text-sm font-semibold text-slate-400">
+                            Solo lectura
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })
               )}
             </tbody>
           </table>

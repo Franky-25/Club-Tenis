@@ -30,7 +30,7 @@ async function getDefaultCourt() {
 
 export async function fetchClubData(): Promise<ClubData> {
   const [playersResult, courtsResult, reservationsResult] = await Promise.all([
-    supabase.from('players').select('id, name, phone, email').order('name'),
+    supabase.from('players').select('id, name, phone, email, role').order('name'),
     supabase.from('courts').select('id, name, status').order('name'),
     supabase
       .from('reservations')
@@ -104,6 +104,32 @@ export async function isCurrentUserRegisteredPlayer() {
   return data.length > 0
 }
 
+export async function getCurrentUserPlayer() {
+  const { data: userResult, error: userError } = await supabase.auth.getUser()
+
+  if (userError) {
+    throw userError
+  }
+
+  const email = userResult.user?.email
+
+  if (!email) {
+    return null
+  }
+
+  const { data, error } = await supabase
+    .from('players')
+    .select('id, name, phone, email, role')
+    .ilike('email', email)
+    .single()
+
+  if (error) {
+    throw error
+  }
+
+  return data
+}
+
 export async function canCreateAccessForRegisteredPlayer(email: string) {
   const { data, error } = await supabase.rpc('can_create_player_access', {
     requested_email: email,
@@ -120,7 +146,22 @@ export async function createPlayer(playerData: Omit<Player, 'id'>) {
   const { data, error } = await supabase
     .from('players')
     .insert(playerData)
-    .select('id, name, phone, email')
+    .select('id, name, phone, email, role')
+    .single()
+
+  if (error) {
+    throw error
+  }
+
+  return data
+}
+
+export async function updatePlayer(playerId: string, playerData: Omit<Player, 'id'>) {
+  const { data, error } = await supabase
+    .from('players')
+    .update(playerData)
+    .eq('id', playerId)
+    .select('id, name, phone, email, role')
     .single()
 
   if (error) {

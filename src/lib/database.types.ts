@@ -30,6 +30,7 @@ export type Database = {
           name: string
           phone: string
           email: string
+          role: 'admin' | 'member'
           created_at: string
         }
         Insert: {
@@ -37,6 +38,7 @@ export type Database = {
           name: string
           phone: string
           email: string
+          role?: 'admin' | 'member'
           created_at?: string
         }
         Update: {
@@ -44,6 +46,7 @@ export type Database = {
           name?: string
           phone?: string
           email?: string
+          role?: 'admin' | 'member'
           created_at?: string
         }
         Relationships: []
@@ -103,6 +106,14 @@ export type Database = {
         Args: {
           requested_email: string
         }
+        Returns: boolean
+      }
+      current_player_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      is_admin: {
+        Args: Record<PropertyKey, never>
         Returns: boolean
       }
       is_registered_player: {

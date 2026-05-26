@@ -2,51 +2,27 @@ import type { FormEvent } from 'react'
 import type { Player, Reservation } from '../types'
 import type { CourtStatus } from './Header'
 import { getLocalDateValue } from '../utils/date'
+import { reservationTimeOptions } from '../utils/timeSlots'
 
 type ReservationFormProps = {
   courtStatus: CourtStatus
+  currentPlayer: Player | null
   editingReservation: Reservation | null
   errorMessage: string
+  isAdmin: boolean
   onCancelEdit: () => void
   players: Player[]
   onSaveReservation: (reservation: Omit<Reservation, 'id' | 'playerName'>) => boolean | Promise<boolean>
 }
 
 const court = 'Cancha 1'
-const timeOptions = [
-  '08:00',
-  '08:30',
-  '09:00',
-  '09:30',
-  '10:00',
-  '10:30',
-  '11:00',
-  '11:30',
-  '12:00',
-  '12:30',
-  '13:00',
-  '13:30',
-  '14:00',
-  '14:30',
-  '15:00',
-  '15:30',
-  '16:00',
-  '16:30',
-  '17:00',
-  '17:30',
-  '18:00',
-  '18:30',
-  '19:00',
-  '19:30',
-  '20:00',
-  '20:30',
-  '21:00',
-]
 
 export function ReservationForm({
   courtStatus,
+  currentPlayer,
   editingReservation,
   errorMessage,
+  isAdmin,
   onCancelEdit,
   players,
   onSaveReservation,
@@ -57,12 +33,13 @@ export function ReservationForm({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    const form = event.currentTarget
 
     if (isReservationBlocked) {
       return
     }
 
-    const formData = new FormData(event.currentTarget)
+    const formData = new FormData(form)
 
     const wasSaved = await onSaveReservation({
       playerId: String(formData.get('playerId')),
@@ -73,7 +50,7 @@ export function ReservationForm({
     })
 
     if (wasSaved) {
-      event.currentTarget.reset()
+      form.reset()
     }
   }
 
@@ -97,23 +74,35 @@ export function ReservationForm({
           </p>
         ) : null}
 
-        <label className="grid gap-2 text-sm font-medium text-slate-700">
-          Socio
-          <select
-            className="input-field"
-            defaultValue={editingReservation?.playerId ?? ''}
-            name="playerId"
-            required
-            disabled={players.length === 0 || isReservationBlocked}
-          >
-            <option value="">Seleccionar socio</option>
-            {players.map((player) => (
-              <option key={player.id} value={player.id}>
-                {player.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        {isAdmin ? (
+          <label className="grid gap-2 text-sm font-medium text-slate-700">
+            Socio
+            <select
+              className="input-field"
+              defaultValue={editingReservation?.playerId ?? ''}
+              name="playerId"
+              required
+              disabled={players.length === 0 || isReservationBlocked}
+            >
+              <option value="">Seleccionar socio</option>
+              {players.map((player) => (
+                <option key={player.id} value={player.id}>
+                  {player.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <label className="grid gap-2 text-sm font-medium text-slate-700">
+            Socio
+            <input name="playerId" type="hidden" value={currentPlayer?.id ?? ''} />
+            <input
+              className="input-field"
+              disabled
+              value={currentPlayer?.name ?? 'Socio'}
+            />
+          </label>
+        )}
 
         <div className="grid min-w-0 gap-4 sm:grid-cols-3">
           <label className="grid gap-2 text-sm font-medium text-slate-700">
@@ -137,7 +126,7 @@ export function ReservationForm({
               required
             >
               <option value="">Seleccionar inicio</option>
-              {timeOptions.map((time) => (
+              {reservationTimeOptions.map((time) => (
                 <option key={time} value={time}>
                   {time}
                 </option>
@@ -154,7 +143,7 @@ export function ReservationForm({
               required
             >
               <option value="">Seleccionar salida</option>
-              {timeOptions.map((time) => (
+              {reservationTimeOptions.map((time) => (
                 <option key={time} value={time}>
                   {time}
                 </option>
