@@ -1,8 +1,9 @@
-import type { FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import type { Player, Reservation } from '../types'
 import type { CourtStatus } from './Header'
 import { getLocalDateValue } from '../utils/date'
 import { reservationTimeOptions } from '../utils/timeSlots'
+import { AlertDialog } from './AlertDialog'
 
 type ReservationFormProps = {
   courtStatus: CourtStatus
@@ -11,6 +12,7 @@ type ReservationFormProps = {
   errorMessage: string
   isAdmin: boolean
   onCancelEdit: () => void
+  onClearError: () => void
   players: Player[]
   onSaveReservation: (reservation: Omit<Reservation, 'id' | 'playerName'>) => boolean | Promise<boolean>
 }
@@ -24,15 +26,18 @@ export function ReservationForm({
   errorMessage,
   isAdmin,
   onCancelEdit,
+  onClearError,
   players,
   onSaveReservation,
 }: ReservationFormProps) {
+  const [successMessage, setSuccessMessage] = useState('')
   const today = getLocalDateValue()
   const isMaintenanceMode = courtStatus === 'mantencion'
   const isReservationBlocked = isMaintenanceMode && !editingReservation
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    setSuccessMessage('')
     const form = event.currentTarget
 
     if (isReservationBlocked) {
@@ -40,9 +45,12 @@ export function ReservationForm({
     }
 
     const formData = new FormData(form)
+    const playerId = String(formData.get('playerId'))
+    const selectedPlayer = players.find((player) => player.id === playerId) ?? currentPlayer
+    const isEditing = editingReservation !== null
 
     const wasSaved = await onSaveReservation({
-      playerId: String(formData.get('playerId')),
+      playerId,
       court: String(formData.get('court')),
       date: String(formData.get('date')),
       startTime: String(formData.get('startTime')),
@@ -50,6 +58,10 @@ export function ReservationForm({
     })
 
     if (wasSaved) {
+      if (!isEditing) {
+        setSuccessMessage(`${selectedPlayer?.name ?? 'El socio'} ha creado la reserva exitosamente.`)
+      }
+
       form.reset()
     }
   }
@@ -163,12 +175,21 @@ export function ReservationForm({
           ) : null}
         </div>
 
-        {errorMessage ? (
-          <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">
-            {errorMessage}
-          </p>
-        ) : null}
       </form>
+
+      <AlertDialog
+        isOpen={errorMessage !== ''}
+        message={errorMessage}
+        onClose={onClearError}
+        title="No se pudo crear la reserva"
+      />
+
+      <AlertDialog
+        isOpen={successMessage !== ''}
+        message={successMessage}
+        onClose={() => setSuccessMessage('')}
+        title="Reserva creada"
+      />
     </section>
   )
 }

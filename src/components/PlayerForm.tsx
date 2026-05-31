@@ -1,16 +1,25 @@
 import { useState, type FormEvent } from 'react'
 import type { Player } from '../types'
+import { AlertDialog } from './AlertDialog'
 import { ConfirmDialog } from './ConfirmDialog'
 
 type PlayerFormData = Omit<Player, 'id'>
 
 type PlayerFormProps = {
   editingPlayer: Player | null
+  errorMessage: string
   onCancelEdit: () => void
+  onClearError: () => void
   onSavePlayer: (player: PlayerFormData) => boolean | Promise<boolean>
 }
 
-export function PlayerForm({ editingPlayer, onCancelEdit, onSavePlayer }: PlayerFormProps) {
+export function PlayerForm({
+  editingPlayer,
+  errorMessage,
+  onCancelEdit,
+  onClearError,
+  onSavePlayer,
+}: PlayerFormProps) {
   const [playerToSave, setPlayerToSave] = useState<PlayerFormData | null>(null)
   const [successMessage, setSuccessMessage] = useState('')
 
@@ -125,12 +134,21 @@ export function PlayerForm({ editingPlayer, onCancelEdit, onSavePlayer }: Player
           ) : null}
         </div>
 
-        {successMessage ? (
-          <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-700">
-            {successMessage}
-          </p>
-        ) : null}
       </form>
+
+      <AlertDialog
+        isOpen={successMessage !== ''}
+        message={successMessage}
+        onClose={() => setSuccessMessage('')}
+        title="Socio creado"
+      />
+
+      <AlertDialog
+        isOpen={errorMessage !== ''}
+        message={errorMessage}
+        onClose={onClearError}
+        title="No se pudo crear el socio"
+      />
 
       <ConfirmDialog
         confirmLabel="Guardar cambios"

@@ -103,10 +103,17 @@ export function AuthPanel({ accessMessage, onAuthenticated }: AuthPanelProps) {
   return (
     <div className="min-h-screen bg-slate-100 px-4 py-10 text-slate-800">
       <section className="mx-auto w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <p className="text-sm font-semibold uppercase tracking-wide text-[#DB5D4F]">
-          Tenis El Salto
-        </p>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">
+        <div className="flex flex-col items-center text-center">
+          <img
+            alt="Club Deportivo de Tenis Las Torres"
+            className="h-32 w-32 object-contain"
+            src="/club-logo.png"
+          />
+          <p className="mt-4 text-sm font-semibold uppercase tracking-wide text-[#DB5D4F]">
+            Club Deportivo de Tenis Las Torres
+          </p>
+        </div>
+        <h1 className="mt-2 text-center text-2xl font-bold text-slate-900">
           {mode === 'signin' ? 'Ingresar Socio' : 'Crear acceso de socio'}
         </h1>
 

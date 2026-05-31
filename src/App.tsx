@@ -63,6 +63,7 @@ function App() {
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null)
   const [courtStatus, setCourtStatus] = useState<CourtStatus>('operativo')
   const [searchTerm, setSearchTerm] = useState('')
+  const [playerError, setPlayerError] = useState('')
   const [reservationError, setReservationError] = useState('')
   const [appMessage, setAppMessage] = useState('')
   const [authMessage, setAuthMessage] = useState('')
@@ -147,6 +148,20 @@ function App() {
   }, [players, searchTerm])
 
   async function handleSavePlayer(playerData: Omit<Player, 'id'>) {
+    const normalizedEmail = playerData.email.trim().toLowerCase()
+    const duplicatePlayer = players.find(
+      (player) =>
+        player.id !== editingPlayer?.id &&
+        player.email.trim().toLowerCase() === normalizedEmail,
+    )
+
+    if (duplicatePlayer) {
+      setPlayerError(`"${playerData.email}" ya existe.`)
+      return false
+    }
+
+    setPlayerError('')
+
     if (!isAdmin) {
       setAppMessage('Solo un administrador puede crear o editar socios.')
       return false
@@ -228,6 +243,7 @@ function App() {
 
   function handleEditPlayer(player: Player) {
     setEditingPlayer(player)
+    setPlayerError('')
     setTimeout(() => {
       playerFormRef.current?.scrollIntoView({
         behavior: 'smooth',
@@ -426,6 +442,7 @@ function App() {
     setCurrentPlayer(null)
     setEditingPlayer(null)
     setEditingReservation(null)
+    setPlayerError('')
   }
 
   if (!isAuthReady) {
@@ -472,7 +489,12 @@ function App() {
               <div ref={playerFormRef}>
                 <PlayerForm
                   editingPlayer={editingPlayer}
-                  onCancelEdit={() => setEditingPlayer(null)}
+                  errorMessage={playerError}
+                  onCancelEdit={() => {
+                    setEditingPlayer(null)
+                    setPlayerError('')
+                  }}
+                  onClearError={() => setPlayerError('')}
                   onSavePlayer={handleSavePlayer}
                 />
               </div>
@@ -484,6 +506,7 @@ function App() {
                   errorMessage={reservationError}
                   isAdmin={isAdmin}
                   onCancelEdit={handleCancelEditReservation}
+                  onClearError={() => setReservationError('')}
                   onSaveReservation={handleSaveReservation}
                   players={players}
                 />
@@ -524,6 +547,7 @@ function App() {
                 errorMessage={reservationError}
                 isAdmin={isAdmin}
                 onCancelEdit={handleCancelEditReservation}
+                onClearError={() => setReservationError('')}
                 onSaveReservation={handleSaveReservation}
                 players={players}
               />
